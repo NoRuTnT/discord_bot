@@ -47,6 +47,9 @@ public class DiscordListener extends ListenerAdapter {
 			case "!list":
 				ListCommand(event);
 				break;
+			case "!gpt":
+				GptCommand(message, event);
+				break;
 			default:
 				if (searchResultsMap.containsKey(userId) && isNumeric(message.trim())) {
 					NumberInput(message, member, event, userId);
@@ -60,6 +63,8 @@ public class DiscordListener extends ListenerAdapter {
 			return "!play";
 		} else if (message.equals("!list")) {
 			return "!list";
+		} else if (message.startsWith("!gpt ")) {
+			return "!gpt";
 		} else {
 			return "";
 		}
@@ -126,6 +131,12 @@ public class DiscordListener extends ListenerAdapter {
 				event.getChannel().sendMessage("숫자를 입력해주세요.").queue();
 			}
 		}
+	}
+
+	private void GptCommand(String message, MessageReceivedEvent event) {
+		String question = message.substring(5).trim();
+		String response = gptService.getResponse(question);
+		event.getChannel().sendMessage(response).queue();
 	}
 
 	private boolean isValidURL(String url) {
