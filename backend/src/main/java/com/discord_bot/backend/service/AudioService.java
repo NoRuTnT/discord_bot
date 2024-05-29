@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import com.discord_bot.backend.util.GuildAudioManager;
@@ -52,7 +53,7 @@ public class AudioService {
 		});
 	}
 
-	public void addTrackToQueue(String url, Guild guild, Member member) {
+	public void addTrackToQueue(String url, Guild guild, Member member, TextChannel channel) {
 		GuildAudioManager manager = getGuildAudioManager(guild);
 		String audioUrl = youTubeUtil.extractAudioUrl(url);
 
@@ -61,6 +62,13 @@ public class AudioService {
 			public void trackLoaded(AudioTrack track) {
 				manager.scheduler.queue(track);
 				connectToVoiceChannel(guild, member);
+
+				// 현재 큐의 크기를 가져옴 (1부터 시작하기 위해 +1)
+				int queuePosition = manager.scheduler.getQueue().size() + 1;
+				String trackTitle = track.getInfo().title;
+
+				// 메시지를 채널에 보냄
+				channel.sendMessage(String.format("노래가 추가되었습니다: %d, Title: %s", queuePosition, trackTitle)).queue();
 			}
 
 			@Override
@@ -69,16 +77,17 @@ public class AudioService {
 					manager.scheduler.queue(track);
 				}
 				connectToVoiceChannel(guild, member);
+				channel.sendMessage("플레이리스트가 추가되었습니다.").queue();
 			}
 
 			@Override
 			public void noMatches() {
-				// No matches found
+				channel.sendMessage("url과 매칭되는 컨텐츠가 없습니다: " + url).queue();
 			}
 
 			@Override
 			public void loadFailed(FriendlyException exception) {
-				// load failed 처리
+				channel.sendMessage("로드하는데 실패했습니다: " + exception.getMessage()).queue();
 			}
 		});
 	}
