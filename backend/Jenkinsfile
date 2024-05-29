@@ -16,6 +16,11 @@ pipeline {
         JAVA_HOME = 'tool jdk17'
 
     }
+
+    triggers {
+        githubPush()
+    }
+
     post {
         success {
             updateGitlabCommitStatus name: 'build', state: 'success'
