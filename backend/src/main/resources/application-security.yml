@@ -1,0 +1,15 @@
+spring:
+  config:
+    import:
+      - optional:file:env/security.env[.properties]
+youtube:
+  api:
+    key: ${YOUTUBE_KEY}
+
+discord:
+  token: ${DISCORD_TOKEN}
+
+gpt:
+  api:
+    key: ${GPT_KEY}
+    url: ${GPT_URL}
