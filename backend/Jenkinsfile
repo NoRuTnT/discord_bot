@@ -7,15 +7,11 @@ pipeline {
     environment {
         // 환경 변수를 선언하고 초기화
         imageName = "norutnt/discord"
-        frontimageName = "norutnt/front"
-        dataimageName = "norutnt/data"
         registryCredential = "dockerhub"
         dockerImage = ''
 
         releaseServerAccount = 'ubuntu'
         releaseServerUri = 'maplebot.duckdns.org'
-        frontreleasePort = '3000'
-        datareleasePort = '8000'
         releasePort = '8081'
         JAVA_HOME = 'tool jdk17'
 
