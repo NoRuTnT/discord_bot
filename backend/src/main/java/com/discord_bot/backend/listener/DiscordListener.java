@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
@@ -72,9 +73,10 @@ public class DiscordListener extends ListenerAdapter {
 
 	private void PlayCommand(String message, Member member, MessageReceivedEvent event, long userId) {
 		String query = message.substring(6).trim();
+		TextChannel channel = event.getChannel().asTextChannel();
 		if (isValidURL(query)) {
 			if (member != null) {
-				audioService.addTrackToQueue(query, event.getGuild(), member);
+				audioService.addTrackToQueue(query, event.getGuild(), member, channel);
 				event.getChannel().sendMessage("추가완료").queue();
 			} else {
 				event.getChannel().sendMessage("로그인정보를 받아오지못했습니다.").queue();
@@ -111,6 +113,7 @@ public class DiscordListener extends ListenerAdapter {
 
 	private void NumberInput(String message, Member member, MessageReceivedEvent event, long userId) {
 		List<SearchResult> results = searchResultsMap.get(userId);
+		TextChannel channel = event.getChannel().asTextChannel();
 		if (results != null) {
 			try {
 				int index = Integer.parseInt(message.trim()) - 1;
@@ -118,8 +121,8 @@ public class DiscordListener extends ListenerAdapter {
 					String videoId = results.get(index).getId().getVideoId();
 					String url = "https://www.youtube.com/watch?v=" + videoId;
 					if (member != null) {
-						audioService.addTrackToQueue(url, event.getGuild(), member);
-						event.getChannel().sendMessage("재생목록에 추가되었습니다.").queue();
+						audioService.addTrackToQueue(url, event.getGuild(), member, channel);
+						// event.getChannel().sendMessage("재생목록에 추가되었습니다.").queue();
 					} else {
 						event.getChannel().sendMessage("로그인정보를 받아오지못했습니다.").queue();
 					}
