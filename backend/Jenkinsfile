@@ -76,7 +76,6 @@ pipeline {
                         sh "chmod -R 755 backend/env"
                 }
 
-
                 withCredentials([file(credentialsId: 'security', variable: 'securityFile')]) {
                     script {
                         sh 'cp $securityFile backend/env/security.env'
