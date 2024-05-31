@@ -38,7 +38,6 @@ public class YouTubeUtil {
 			.setKey(apiKey)
 			.setMaxResults(5L)
 			.execute();
-
 		return response.getItems();
 	}
 
