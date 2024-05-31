@@ -75,7 +75,6 @@ pipeline {
                         userRemoteConfigs: [[credentialsId: 'hubtoken', url: 'https://github.com/NoRuTnT/discord_bot.git']]
                     ])
                 }
-
             }
         }
 
