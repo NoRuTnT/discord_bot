@@ -42,8 +42,4 @@ public class YouTubeUtil {
 		return response.getItems();
 	}
 
-	public String extractAudioUrl(String youtubeUrl) {
-		// YouTube URL에서 음원만 추출하는 로직
-		return youtubeUrl;
-	}
 }

@@ -55,9 +55,8 @@ public class AudioService {
 
 	public void addTrackToQueue(String url, Guild guild, Member member, TextChannel channel) {
 		GuildAudioManager manager = getGuildAudioManager(guild);
-		String audioUrl = youTubeUtil.extractAudioUrl(url);
 
-		playerManager.loadItem(audioUrl, new AudioLoadResultHandler() {
+		playerManager.loadItem(url, new AudioLoadResultHandler() {
 			@Override
 			public void trackLoaded(AudioTrack track) {
 				manager.scheduler.queue(track);
