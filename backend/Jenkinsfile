@@ -72,7 +72,7 @@ pipeline {
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [[$class: 'PreBuildMerge', options: [mergeRemote: 'origin', mergeTarget: "${env.GIT_BRANCH_TARGET}"]]],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[credentialsId: 'githubtoken', url: 'https://github.com/NoRuTnT/discord_bot.git']]
+                        userRemoteConfigs: [[credentialsId: 'hubtoken', url: 'https://github.com/NoRuTnT/discord_bot.git']]
                     ])
                 }
 
