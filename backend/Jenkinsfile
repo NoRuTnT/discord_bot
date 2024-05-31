@@ -22,7 +22,6 @@ pipeline {
     triggers {
         githubPush()
     }
-
     post {
         success {
             updateGitlabCommitStatus name: 'build', state: 'success'
