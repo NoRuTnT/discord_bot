@@ -20,8 +20,19 @@ pipeline {
     }
 
     triggers {
-        githubPush()
+        genericTrigger(
+            genericVariables: [
+                [key: 'GIT_BRANCH_SOURCE', value: '$.pull_request.head.ref'],
+                [key: 'GIT_BRANCH_TARGET', value: '$.pull_request.base.ref']
+            ],
+            causeString: 'Triggered on $GIT_BRANCH_SOURCE by $GIT_BRANCH_TARGET',
+            token: 'moonabcd',
+            printContributedVariables: true,
+            printPostContent: true,
+            silentResponse: false
+        )
     }
+
     post {
         success {
             updateGitlabCommitStatus name: 'build', state: 'success'
