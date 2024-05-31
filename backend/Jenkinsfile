@@ -77,7 +77,6 @@ pipeline {
                 }
             }
         }
-
         stage('Setup build environment') {
             steps {
                 script {
