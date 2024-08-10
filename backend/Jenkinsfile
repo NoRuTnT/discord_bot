@@ -19,23 +19,9 @@ pipeline {
         GIT_BRANCH_TARGET = "${env.GIT_BRANCH_TARGET}"
     }
 
-    triggers {
-        genericTrigger(
-            genericVariables: [
-                [key: 'GIT_BRANCH_SOURCE', value: '$.pull_request.head.ref'],
-                [key: 'GIT_BRANCH_TARGET', value: '$.pull_request.base.ref']
-            ],
-            causeString: 'Triggered on $GIT_BRANCH_SOURCE by $GIT_BRANCH_TARGET',
-            token: 'moonabcd',
-            printContributedVariables: true,
-            printPostContent: true,
-            silentResponse: false
-        )
-    }
 
     post {
         success {
-            updateGitlabCommitStatus name: 'build', state: 'success'
 
             script {
                 def Author_ID = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
@@ -48,7 +34,6 @@ pipeline {
         }
 
         failure {
-            updateGitlabCommitStatus name: 'build', state: 'failed'
 
             script {
                 def Author_ID = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
