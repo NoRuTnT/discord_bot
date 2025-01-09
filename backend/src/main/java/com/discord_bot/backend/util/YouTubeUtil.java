@@ -33,7 +33,8 @@ public class YouTubeUtil {
 
 	public List<SearchResult> search(String query) throws GeneralSecurityException, IOException {
 		YouTube youtubeService = getService();
-		YouTube.Search.List request = youtubeService.search().list("snippet");
+		YouTube.Search.List request = youtubeService.search()
+			.list(List.of("snippet")); //기본정보만포함 나중에 조회수 좋아요,싫어요등 통계필요하면 videoId를 이용해 데이터를 받아오는 코드추가필요
 		SearchListResponse response = request.setQ(query)
 			.setKey(apiKey)
 			.setMaxResults(5L)
@@ -43,7 +44,7 @@ public class YouTubeUtil {
 	}
 
 	public String extractAudioUrl(String youtubeUrl) {
-		// YouTube URL에서 음원만 추출하는 로직
+
 		return youtubeUrl;
 	}
 }

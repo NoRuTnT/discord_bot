@@ -7,6 +7,9 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 
+import lombok.Getter;
+
+@Getter
 public class GuildAudioManager {
 
 	public final AudioPlayer player;
@@ -20,7 +23,4 @@ public class GuildAudioManager {
 		this.player.addListener(scheduler);
 	}
 
-	public BlockingQueue<AudioTrack> getQueue() {
-		return queue;
-	}
 }
