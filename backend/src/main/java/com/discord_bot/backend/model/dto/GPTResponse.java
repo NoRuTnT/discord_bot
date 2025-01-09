@@ -2,45 +2,22 @@ package com.discord_bot.backend.model.dto;
 
 import java.util.List;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class GPTResponse {
 
 	private List<GPTChoice> choices;
 
-	public GPTResponse() {
-	}
-
-	public GPTResponse(List<GPTChoice> choices) {
-		this.choices = choices;
-	}
-
-	// Getters and Setters
-
-	public List<GPTChoice> getChoices() {
-		return choices;
-	}
-
-	public void setChoices(List<GPTChoice> choices) {
-		this.choices = choices;
-	}
-
+	@Data
+	@NoArgsConstructor
+	@AllArgsConstructor
 	public static class GPTChoice {
 		private String text;
 
-		public GPTChoice() {
-		}
-
-		public GPTChoice(String text) {
-			this.text = text;
-		}
-
-		// Getters and Setters
-
-		public String getText() {
-			return text;
-		}
-
-		public void setText(String text) {
-			this.text = text;
-		}
 	}
 }
