@@ -30,7 +30,7 @@ frontend - https://github.com/NoRuTnT/Raiders-leader-react
 1. 사이트에 등록된 캐릭터는 오른쪽리스트에서 카드를 드래그하여 파티구성칸에 넣어 파티구성가능
 2. 던전추가, 던전관리 버튼으로 원하는이름의 던전 생성, 수정, 삭제 가능
 3. 드롭다운메뉴로 던전선택후 저장버튼으로 파티생성가능
-![Image](https://github.com/user-attachments/assets/ddfbed98-ac87-4331-b42e-1d54e17ae7d8)
+![Image](https://github.com/user-attachments/assets/b0723f9f-fc6a-4885-a4f0-38f87244f25b)
 ![Image](https://github.com/user-attachments/assets/6d43e051-7e79-42db-8020-b2e23183b307)
 ![Image](https://github.com/user-attachments/assets/32faa165-4ef9-4799-8c06-4b86baa732db)
 
