@@ -1,9 +1,7 @@
-# 디스코드봇
 
+###  라라봇 기능 설명
 
-##  기능 설명
-
-### Stable Diffusion ai이미지생성기능
+## Stable Diffusion ai이미지생성기능
 git repo 링크 : https://github.com/NoRuTnT/discord_stablediffusion
 
 - !generate 명령어로 프롬프트를 입력하여 4개의 이미지생성
@@ -13,7 +11,7 @@ git repo 링크 : https://github.com/NoRuTnT/discord_stablediffusion
   
 ![Image](https://github.com/user-attachments/assets/5b575a24-ac85-4383-937c-788165d5c5fc)
 
-### rpg게임 파티구성기능
+## rpg게임 파티구성기능
 git repo 링크 :  
 backend - https://github.com/NoRuTnT/Raiders-leader  
 frontend - https://github.com/NoRuTnT/Raiders-leader-react  
@@ -46,7 +44,7 @@ frontend - https://github.com/NoRuTnT/Raiders-leader-react
   
   
 
-### 음악재생기능
+## 음악재생기능
 - 단어로 재생리스트검색후 번호선택으로 재생  
   
 ![Image](https://github.com/user-attachments/assets/4a9c5d82-0363-43d6-9622-d08c88d3218d)  
@@ -57,4 +55,4 @@ frontend - https://github.com/NoRuTnT/Raiders-leader-react
   
 ![Image](https://github.com/user-attachments/assets/9d1bbd92-4767-4bfc-82a3-b08b3625fc87)
 
-### gpt검색기능
+## gpt검색기능
