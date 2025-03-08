@@ -3,7 +3,9 @@
 
 ##  기능 설명
 
-### ai이미지생성기능
+### Stable Diffusion ai이미지생성기능
+git repo 링크 : https://github.com/NoRuTnT/discord_stablediffusion
+
 - !generate 명령어로 프롬프트를 입력하여 4개의 이미지생성
   
 ![Image](https://github.com/user-attachments/assets/72c39acb-db53-4b9d-bb48-5c245782d9c3)
@@ -12,7 +14,11 @@
 ![Image](https://github.com/user-attachments/assets/5b575a24-ac85-4383-937c-788165d5c5fc)
 
 ### rpg게임 파티구성기능
-온라인rpg게임 api를 이용한 파티구성기능 (현재1개게임 운영중)
+git repo 링크 :  
+backend - https://github.com/NoRuTnT/Raiders-leader  
+frontend - https://github.com/NoRuTnT/Raiders-leader-react  
+
+온라인rpg게임 api를 이용한 파티구성기능 (현재1개게임 운영중)  
 - !파티 명령어로 링크제공  
   
 ![Image](https://github.com/user-attachments/assets/94fb98e8-abb5-4e2b-aacd-e2981199cceb)
