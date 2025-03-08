@@ -32,9 +32,9 @@ import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
 @Service
 public class AudioService {
 
-	private final YouTubeUtil youTubeUtil; // YouTube 검색 유틸리티
-	private final AudioPlayerManager playerManager; // Lavaplayer 메인 매니저
-	private final Map<Long, GuildAudioManager> audioManagers; // 길드 ID별로 오디오 매니저를 관리하는 맵
+	private final YouTubeUtil youTubeUtil;
+	private final AudioPlayerManager playerManager;
+	private final Map<Long, GuildAudioManager> audioManagers;
 
 	@Autowired
 	public AudioService(YouTubeUtil youTubeUtil) {
@@ -45,9 +45,6 @@ public class AudioService {
 
 	}
 
-	/**
-	 * 해당 길드(Guild)의 AudioManager를 가져옵니다. 길드 AudioManager가 없으면 새로 생성.
-	 */
 	private synchronized GuildAudioManager getGuildAudioManager(Guild guild) {
 		return audioManagers.computeIfAbsent(Long.valueOf(guild.getIdLong()), guildId -> {
 			GuildAudioManager manager = new GuildAudioManager(playerManager);
@@ -56,14 +53,9 @@ public class AudioService {
 		});
 	}
 
-	/**
-	 * YouTube URL을 통해 트랙을 로드하고 큐에 추가
-	 */
-
 	public void addTrackToQueue(String url, Guild guild, Member member) {
 		GuildAudioManager manager = getGuildAudioManager(guild);
 
-		// Lavaplayer를 통해 YouTube URL로 오디오 트랙 로드
 		playerManager.loadItem(url, new AudioLoadResultHandler() {
 			@Override
 			public void trackLoaded(AudioTrack track) {
@@ -94,17 +86,14 @@ public class AudioService {
 
 		// 현재 재생 중인 트랙을 중단
 
-
 	}
 
 	public void pauseTrack(Guild guild) {
-		// 현재 재생 중인 오디오 트랙을 가진 AudioPlayer를 가져와 일시정지
 		GuildAudioManager manager = getGuildAudioManager(guild);
 		manager.scheduler.onPlayerPause(manager.player); // 재생을 일시정지
 	}
 
 	public void resumeTrack(Guild guild) {
-		// 현재 멈춰져 있던 오디오 트랙을 다시 재생
 		GuildAudioManager manager = getGuildAudioManager(guild);
 		manager.scheduler.onPlayerResume(manager.player); // 재생 상태로 복귀
 	}
@@ -130,7 +119,6 @@ public class AudioService {
 		return youTubeUtil.search(query);
 	}
 
-	// JDA4 통합
 	private static class AudioPlayerSendHandler implements AudioSendHandler {
 
 		private final AudioPlayer audioPlayer;

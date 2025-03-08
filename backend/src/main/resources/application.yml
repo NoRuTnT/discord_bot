@@ -2,6 +2,5 @@ spring:
   config:
     import:
       - application-security.yml
-server:
-  port: ${SERVER_PORT1}
+
 
