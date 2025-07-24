@@ -9,7 +9,17 @@ youtube:
 discord:
   token: ${DISCORD_TOKEN}
 
+fastapi:
+  url: ${FASTAPI_URL}
+
 gpt:
   api:
     key: ${GPT_KEY}
-    url: ${GPT_URL}
+    texturl: ${GPT_TEXTURL}
+    mainurl: ${GPT_MAINURL}
+    prompt: ${GPT_PROMPT}
+    mainrompt: ${GPT_MAINPROMPT}
+
+
+server:
+  port: ${SERVER_PORT1}

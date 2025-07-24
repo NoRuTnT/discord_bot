@@ -1,19 +1,20 @@
 package com.discord_bot.backend.util;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import com.discord_bot.backend.config.GPTConfig;
-import com.discord_bot.backend.model.dto.GPTRequest;
 import com.discord_bot.backend.model.dto.GPTResponse;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.GoogleSearch;
+import com.google.genai.types.Tool;
+
+import autovalue.shaded.com.google.common.collect.ImmutableList;
 
 @Component
 public class GPTUtil {
@@ -25,32 +26,66 @@ public class GPTUtil {
 		this.gptConfig = gptConfig;
 	}
 
-	public String getResponseFromGPT(String question) {
-		RestTemplate restTemplate = new RestTemplate();
-		String apiUrl = gptConfig.getApiUrl();
+	public String getChangeQuestion(String question) {
+		String apiUrl = gptConfig.getTextUrl();
 		String apiKey = gptConfig.getApiKey();
+		String endpoint = apiUrl + apiKey;
+		String prompt = gptConfig.getPrompt() + "Input: " + question;
 
-		// GPT API 요청을 위한 요청 본문 구성
-		GPTRequest gptRequest = new GPTRequest(question, 100, 0.7, 1.0, 1, Arrays.asList("\n"));
+		Client client = Client.builder().apiKey(apiKey).build();
 
-		// 헤더 구성
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		headers.setBearerAuth(apiKey);
+		GenerateContentResponse response =
+			client.models.generateContent(
+				"gemma-3-4b-it",
+				prompt,
+				null);
 
-		// 요청 엔티티 구성
-		HttpEntity<GPTRequest> entity = new HttpEntity<>(gptRequest, headers);
-
-		// API 호출 및 응답 처리
-		ResponseEntity<GPTResponse> responseEntity = restTemplate.exchange(apiUrl, HttpMethod.POST, entity,
-			GPTResponse.class);
-		return parseResponse(responseEntity.getBody());
+		// GPTRequest.Part part = new GPTRequest.Part(prompt);
+		// GPTRequest.Content content = new GPTRequest.Content(List.of(part));
+		// GPTRequest requestDto = new GPTRequest(List.of(content));
+		//
+		// HttpHeaders headers = new HttpHeaders();
+		// headers.setContentType(MediaType.APPLICATION_JSON);
+		//
+		// HttpEntity<GPTRequest> httpEntity = new HttpEntity<>(requestDto, headers);
+		//
+		// RestTemplate restTemplate = new RestTemplate();
+		// ResponseEntity<GPTResponse> response = restTemplate.exchange(
+		// 	endpoint,
+		// 	HttpMethod.POST,
+		// 	httpEntity,
+		// 	GPTResponse.class);
+		return response.text();
 	}
 
-	private String parseResponse(GPTResponse response) {
-		// 응답에서 필요한 정보만 추출 (첫 번째 선택 항목의 텍스트 반환)
-		if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
-			return response.getChoices().get(0).getText();
+	public String getResponseFromGPT(String question) {
+
+		String apiKey = gptConfig.getApiKey();
+		String mainprompt = gptConfig.getMainprompt() + "Input: " + question;
+
+		Client client = Client.builder().apiKey(apiKey).build();
+		Tool googleSearchTool = Tool.builder().googleSearch(GoogleSearch.builder().build()).build();
+
+		GenerateContentConfig config =
+			GenerateContentConfig.builder()
+				.tools(ImmutableList.of(googleSearchTool))
+				.build();
+
+		GenerateContentResponse response =
+			client.models.generateContent(
+				"gemini-2.5-flash",
+				mainprompt,
+				config);
+		return response.text();
+	}
+
+	private String parseResponse(ResponseEntity<GPTResponse> response) {
+		if (response.getStatusCode().is2xxSuccessful()) {
+			List<GPTResponse.Candidate> candidates = response.getBody().getCandidates();
+			if (!candidates.isEmpty()) {
+				String command = candidates.get(0).getContent().getParts().get(0).getText();
+				return command;
+			}
 		}
 		return "No response from GPT";
 	}
