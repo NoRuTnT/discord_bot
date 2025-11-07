@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -87,58 +86,40 @@ public class DiscordListener extends ListenerAdapter {
 			return;
 		}
 		content = content.trim();
+		// String convertedMessage = null;
+		//
+		// try {
+		// 	convertedMessage = gptService.convertToCommand(content);
+		// } catch (JSONException e) {
+		// 	throw new RuntimeException(e);
+		// }
 
-		if (content.startsWith("!help")) {
-			log.info("help명령어");
-			HelpCommand(event);
-			return;
-		}
-		if (content.startsWith("!데굴데굴")) {
-			log.info("주사위게임");
-			DiceGameCommand(event);
-			return;
-		}
-
-		if (content.startsWith("!파티")) {
-			log.info("파티사이트");
-			UrlCommand(event);
-			return;
-		}
-
-		if (!content.startsWith("!라라")) {
-			log.info("명령어아님");
-			return;
-		}
-
-		String convertedMessage = null;
-
-		try {
-			convertedMessage = gptService.convertToCommand(content);
-		} catch (JSONException e) {
-			throw new RuntimeException(e);
-		}
-
-		log.info(convertedMessage);
-		String command = getCommand(convertedMessage);
+		String command = getCommand(content);
 
 		switch (command) {
-			case "!play":
-				PlayCommand(convertedMessage, member, event, userId);
-				break;
-			case "!list":
-				ListCommand(event);
-				break;
-			case "!stop":
-				StopCommand(event);
-				break;
-			case "!pause":
-				PauseCommand(event);
-				break;
-			case "!resume":
-				ResumeCommand(event);
-				break;
+			// case "!play":
+			// 	PlayCommand(convertedMessage, member, event, userId);
+			// 	break;
+			// case "!list":
+			// 	ListCommand(event);
+			// 	break;
+			// case "!stop":
+			// 	StopCommand(event);
+			// 	break;
+			// case "!pause":
+			// 	PauseCommand(event);
+			// 	break;
+			// case "!resume":
+			// 	ResumeCommand(event);
+			// 	break;
 			case "!gpt":
-				GptCommand(convertedMessage, event);
+				GptCommand(content, event);
+				break;
+			case "!party":
+				UrlCommand(event);
+				break;
+			case "!dice":
+				DiceGameCommand(event);
 				break;
 			case "!generate":
 				GenerateCommand(content, event);
@@ -155,20 +136,28 @@ public class DiscordListener extends ListenerAdapter {
 		message = message.trim().toLowerCase(); // 공백제거 및 소문자변환
 		if (message.startsWith("!play ")) {
 			return "!play";
-		} else if (message.equals("!list")) {
-			return "!list";
-		} else if (message.equals("!stop")) {
-			return "!stop";
-		} else if (message.equals("!pause")) {
-			return "!pause";
-		} else if (message.equals("!resume")) {
-			return "!resume";
-		} else if (message.equals("!help")) {
+		}
+		// else if (message.equals("!list")) {
+		// 	return "!list";
+		// } else if (message.equals("!stop")) {
+		// 	return "!stop";
+		// } else if (message.equals("!pause")) {
+		// 	return "!pause";
+		// } else if (message.equals("!resume")) {
+		// 	return "!resume";
+		// }
+		else if (message.equals("!help")) {
+			log.info("help명령어");
 			return "!help";
-		} else if (message.startsWith("!url")) {
-			return "!url";
-		} else if (message.startsWith("!gpt ")) {
+		} else if (message.startsWith("!파티")) {
+			log.info("파티사이트");
+			return "!party";
+		} else if (message.startsWith("!라라")) {
+			log.info("llm사용");
 			return "!gpt";
+		} else if (message.startsWith("!주사위")) {
+			log.info("주사위게임");
+			return "!dice";
 		} else if (message.startsWith("!generate ")) {
 			return "!generate";
 		} else if (message.startsWith("!character ")) {
@@ -529,7 +518,7 @@ public class DiscordListener extends ListenerAdapter {
 			return;
 		}
 		requestInProgress.put(userId, true);
-		String question = message.substring("!gpt".length()).trim();
+		String question = message.substring("!라라".length()).trim();
 
 		EmbedBuilder waitingEmbed = new EmbedBuilder();
 		waitingEmbed.setTitle("🐑 라라 응답 생성 중...");
