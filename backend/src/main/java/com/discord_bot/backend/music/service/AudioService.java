@@ -1,4 +1,4 @@
-package com.discord_bot.backend.service;
+package com.discord_bot.backend.music.service;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,8 +16,8 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.managers.AudioManager;
 
-import com.discord_bot.backend.util.GuildAudioManager;
-import com.discord_bot.backend.util.YouTubeUtil;
+import com.discord_bot.backend.music.util.GuildAudioManager;
+import com.discord_bot.backend.music.util.YouTubeUtil;
 import com.google.api.services.youtube.model.SearchResult;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
@@ -93,7 +93,6 @@ public class AudioService {
 		GuildAudioManager manager = getGuildAudioManager(guild);
 
 		// 현재 재생 중인 트랙을 중단
-
 
 	}
 

@@ -37,9 +37,9 @@ import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
-import com.discord_bot.backend.service.AudioService;
-import com.discord_bot.backend.service.GPTService;
-import com.discord_bot.backend.service.ImageService;
+import com.discord_bot.backend.chat.service.GPTService;
+import com.discord_bot.backend.music.service.AudioService;
+import com.discord_bot.backend.stablediffusion.service.ImageService;
 import com.google.api.services.youtube.model.SearchResult;
 
 import lombok.extern.slf4j.Slf4j;

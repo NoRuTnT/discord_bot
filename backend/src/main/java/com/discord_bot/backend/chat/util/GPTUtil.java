@@ -1,4 +1,4 @@
-package com.discord_bot.backend.util;
+package com.discord_bot.backend.chat.util;
 
 import java.util.List;
 
@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
+import com.discord_bot.backend.chat.model.dto.GPTResponse;
 import com.discord_bot.backend.config.GPTConfig;
-import com.discord_bot.backend.model.dto.GPTResponse;
 import com.google.genai.Client;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
