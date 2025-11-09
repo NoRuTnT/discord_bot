@@ -1,4 +1,4 @@
-package com.discord_bot.backend.music.util;
+package com.discord_bot.backend.domain.music.util;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;

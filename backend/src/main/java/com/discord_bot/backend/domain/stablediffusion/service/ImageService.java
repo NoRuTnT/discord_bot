@@ -1,4 +1,4 @@
-package com.discord_bot.backend.stablediffusion.service;
+package com.discord_bot.backend.domain.stablediffusion.service;
 
 import java.io.File;
 import java.io.FileOutputStream;

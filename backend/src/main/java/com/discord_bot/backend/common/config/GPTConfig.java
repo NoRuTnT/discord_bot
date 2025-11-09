@@ -1,4 +1,4 @@
-package com.discord_bot.backend.config;
+package com.discord_bot.backend.common.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

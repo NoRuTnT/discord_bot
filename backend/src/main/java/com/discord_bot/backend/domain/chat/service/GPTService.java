@@ -1,10 +1,10 @@
-package com.discord_bot.backend.chat.service;
+package com.discord_bot.backend.domain.chat.service;
 
 import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.discord_bot.backend.chat.util.GPTUtil;
+import com.discord_bot.backend.domain.chat.util.GPTUtil;
 
 @Service
 public class GPTService {

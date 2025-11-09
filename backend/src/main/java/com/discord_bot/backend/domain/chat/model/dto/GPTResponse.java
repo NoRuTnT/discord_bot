@@ -1,4 +1,4 @@
-package com.discord_bot.backend.chat.model.dto;
+package com.discord_bot.backend.domain.chat.model.dto;
 
 import java.util.List;
 
@@ -9,22 +9,22 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class GPTRequest {
+public class GPTResponse {
 
-	private List<Content> contents;
+	private List<Candidate> candidates;
 
 	@Data
-	@NoArgsConstructor
-	@AllArgsConstructor
+	public static class Candidate {
+		private Content content;
+	}
+
+	@Data
 	public static class Content {
 		private List<Part> parts;
 	}
 
 	@Data
-	@NoArgsConstructor
-	@AllArgsConstructor
 	public static class Part {
 		private String text;
 	}
-
 }

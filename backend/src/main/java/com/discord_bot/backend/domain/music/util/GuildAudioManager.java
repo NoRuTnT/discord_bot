@@ -1,4 +1,4 @@
-package com.discord_bot.backend.music.util;
+package com.discord_bot.backend.domain.music.util;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
