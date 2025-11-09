@@ -1,4 +1,4 @@
-package com.discord_bot.backend.listener;
+package com.discord_bot.backend.common.listener;
 
 import java.awt.*;
 import java.io.File;
@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,10 +21,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -31,17 +34,22 @@ import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.commands.Command;
 
-import com.discord_bot.backend.chat.service.GPTService;
-import com.discord_bot.backend.music.service.AudioService;
-import com.discord_bot.backend.stablediffusion.service.ImageService;
+import com.discord_bot.backend.domain.chat.service.GPTService;
+import com.discord_bot.backend.domain.music.service.AudioService;
+import com.discord_bot.backend.domain.stablediffusion.service.ImageService;
+import com.discord_bot.backend.domain.stock.model.StockSuggestDto;
+import com.discord_bot.backend.domain.stock.service.StockSearchService;
 import com.google.api.services.youtube.model.SearchResult;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -49,18 +57,13 @@ import okhttp3.Response;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class DiscordListener extends ListenerAdapter {
 
-	private final AudioService audioService;  // final: 불변성 제공
+	private final AudioService audioService;
 	private final GPTService gptService;
 	private final ImageService imageService;
-
-	@Autowired
-	public DiscordListener(AudioService audioService, GPTService gptService, ImageService imageService) {
-		this.audioService = audioService;
-		this.gptService = gptService;
-		this.imageService = imageService;
-	}
+	private final StockSearchService stockSearchService;
 
 	record TimedValue<T>(T value, Instant expiresAt) {
 	}
@@ -175,6 +178,80 @@ public class DiscordListener extends ListenerAdapter {
 	Emoji reactionEmoji2 = Emoji.fromUnicode(emoji2);
 	Emoji reactionEmoji3 = Emoji.fromUnicode(emoji3);
 	Emoji reactionEmoji4 = Emoji.fromUnicode(emoji4);
+
+	@Override
+	public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
+
+		if (!event.getName().equals("주식"))
+			return;
+
+		String q = event.getFocusedOption().getValue().trim();
+
+		if (q.isEmpty()) {
+			event.replyChoices(Collections.emptyList()).queue();
+			return;
+		}
+
+		List<StockSuggestDto> suggests = stockSearchService.suggestByName(q);
+
+		List<Command.Choice> choices = suggests.stream()
+			.limit(10)
+			.map(s -> new Command.Choice(
+				String.format("%s (%s) [%s]", s.getNameKor(), s.getCode(), s.getMarket()),
+				s.getCode()))
+			.toList();
+
+		event.replyChoices(choices).queue();
+	}
+
+	@Override
+	public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
+		if (!event.getName().equals("주식"))
+			return;
+
+		String code = event.getOption("query").getAsString().trim();
+
+		event.deferReply().queue();
+
+		System.out.println(code);
+
+		try {
+			var res = stockSearchService.getCompact(code);
+			log.info(res.getDiffText());
+
+			String arrow;
+			Color color;
+
+			switch (res.getSign()) {
+				case "+" -> {
+					arrow = "🔺";
+					color = new Color(0xE53935); // 빨강
+				}
+				case "-" -> {
+					arrow = "🔽";
+					color = new Color(0x1E88E5); // 파랑
+				}
+				default -> {
+					arrow = "⏺️";
+					color = new Color(0x9E9E9E); // 회색
+				}
+			}
+
+			String diffText = String.format("%s %s", arrow, res.getDiffText());
+			EmbedBuilder eb = new EmbedBuilder()
+				.setTitle(res.getName() + " (" + res.getCode() + ")")
+				.addField("현재가", res.getPrice(), true)
+				.addField("전일대비", diffText, true)
+				.setColor(color)
+				.setFooter("데이터 제공: 한국투자증권 OpenAPI");
+
+			event.getHook().editOriginalEmbeds(eb.build()).queue();
+
+		} catch (Exception e) {
+			event.getHook().editOriginal("시세 조회 중 오류가 발생했어요 ").queue();
+			log.info(e.getMessage());
+		}
+	}
 
 	/**
 	 이미지생성
@@ -556,12 +633,16 @@ public class DiscordListener extends ListenerAdapter {
 			.setDescription("버튼을 눌러 참가하거나 참가를 취소할 수 있어요!\n\n현재 참가자:\n(없음)")
 			.setColor(Color.LIGHT_GRAY);
 
-		event.getChannel().sendMessageEmbeds(eb.build())
-			.setActionRow(
-				Button.success("join_game", "✅ 게임 참가"),
-				Button.danger("leave_game", "❌ 참가 취소"),
-				Button.primary("start_game", "🎯 게임 시작")
-			).queue(msg -> signUpMessage = msg);
+		event.getChannel()
+			.sendMessageEmbeds(eb.build())
+			.setComponents(
+				ActionRow.of(
+					Button.success("join_game", "✅ 게임 참가"),
+					Button.danger("leave_game", "❌ 참가 취소"),
+					Button.primary("start_game", "🎯 게임 시작")
+				)
+			)
+			.queue(msg -> signUpMessage = msg);
 	}
 
 	public void onButtonInteraction(ButtonInteractionEvent event) {
