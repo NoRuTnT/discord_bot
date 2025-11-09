@@ -2,6 +2,29 @@ spring:
   config:
     import:
       - optional:file:env/security.env[.properties]
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+
+  jpa:
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+      show-sql: true
+    hibernate:
+      ddl-auto: update
+
+hantu:
+  api:
+    url: ${HANTU_BASEURL}
+    appkey: ${HANTU_APPKEY}
+    appsecret: ${HANTU_APPSECRET}
+
 youtube:
   api:
     key: ${YOUTUBE_KEY}
@@ -18,7 +41,7 @@ gpt:
     texturl: ${GPT_TEXTURL}
     mainurl: ${GPT_MAINURL}
     prompt: ${GPT_PROMPT}
-    mainrompt: ${GPT_MAINPROMPT}
+    mainprompt: ${GPT_MAINPROMPT}
 
 
 server:
