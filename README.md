@@ -5,6 +5,15 @@
 - !라라 명령어로 질문을 입력
 <img width="577" height="651" alt="image" src="https://github.com/user-attachments/assets/b9325d5e-469a-45f8-8fd2-c1edfcd67ed1" />
 
+## 주식 실시간시세 조회기능
+- /주식 커맨드로 검색가능
+ 검색단어가 포함된 상위10개 종목명을 사용자에게 노출
+<img width="617" height="484" alt="image" src="https://github.com/user-attachments/assets/b342fd53-365b-4614-a342-88341431ea2e" />  
+<img width="614" height="249" alt="image" src="https://github.com/user-attachments/assets/5558cb7d-b038-478b-b210-046446e27e27" />  
+</br>
+<img width="331" height="162" alt="image" src="https://github.com/user-attachments/assets/232ccbaa-26a2-4921-b313-00efc9ed6e1f" />
+<img width="297" height="161" alt="image" src="https://github.com/user-attachments/assets/11b57534-9b90-4251-aa8c-767eb011bc12" />
+
 
 ## Stable Diffusion ai이미지생성기능
 git repo 링크 : https://github.com/NoRuTnT/discord_stablediffusion
