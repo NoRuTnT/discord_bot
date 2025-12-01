@@ -42,6 +42,8 @@ import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 
+import com.discord_bot.backend.common.kafka.DiscordEventProducer;
+import com.discord_bot.backend.common.kafka.model.dto.BotEventRequestDto;
 import com.discord_bot.backend.domain.chat.service.GPTService;
 import com.discord_bot.backend.domain.music.service.AudioService;
 import com.discord_bot.backend.domain.stablediffusion.service.ImageService;
@@ -64,6 +66,7 @@ public class DiscordListener extends ListenerAdapter {
 	private final GPTService gptService;
 	private final ImageService imageService;
 	private final StockSearchService stockSearchService;
+	private final DiscordEventProducer discordEventProducer;
 
 	record TimedValue<T>(T value, Instant expiresAt) {
 	}
@@ -133,6 +136,13 @@ public class DiscordListener extends ListenerAdapter {
 			default:
 				break;
 		}
+		BotEventRequestDto clickDto = BotEventRequestDto.builder()
+			.userName(member.getNickname())
+			.element(command)
+			.timestamp(System.currentTimeMillis())
+			.build();
+
+		discordEventProducer.sendBotStartEvent(clickDto);
 	}
 
 	private String getCommand(String message) {
