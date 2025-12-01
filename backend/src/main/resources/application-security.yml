@@ -19,6 +19,9 @@ spring:
     hibernate:
       ddl-auto: update
 
+  kafka:
+    bootstrap-servers: ${KAFKA_URL}
+
 hantu:
   api:
     url: ${HANTU_BASEURL}
