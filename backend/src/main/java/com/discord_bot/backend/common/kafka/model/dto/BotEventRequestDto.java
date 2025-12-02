@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BotEventRequestDto {
 	private String userName;
+	private String channelName;
+	private Long channelId;
 	private String element;
-	private long timestamp;
+	private Long timestamp;
 }

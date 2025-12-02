@@ -138,6 +138,8 @@ public class DiscordListener extends ListenerAdapter {
 		}
 		BotEventRequestDto clickDto = BotEventRequestDto.builder()
 			.userName(member.getNickname())
+			.channelName(event.getChannel().getName())
+			.channelId(event.getChannel().getIdLong())
 			.element(command)
 			.timestamp(System.currentTimeMillis())
 			.build();
