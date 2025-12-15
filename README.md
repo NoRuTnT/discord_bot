@@ -1,6 +1,8 @@
 <h2  align="center">LaLa Discord Bot</h2>
 <div align="center">
   <img src="https://img.shields.io/discord/199628044430737408?logo=discord&logoColor=white&label=Online&color=5865F2">
+  <img src="https://img.shields.io/badge/discord-JDA-5865F2">
+  
 </div>
 
 ##  라라봇 기능 설명
