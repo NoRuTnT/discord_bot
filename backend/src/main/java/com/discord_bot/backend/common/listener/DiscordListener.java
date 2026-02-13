@@ -95,7 +95,7 @@ public class DiscordListener extends ListenerAdapter {
 		content = content.trim();
 
 		BotEventRequestDto chatDto = BotEventRequestDto.builder()
-			.userName(member.getNickname())
+			.userName(member.getEffectiveName())
 			.channelName(event.getChannel().getName())
 			.channelId(event.getChannel().getIdLong())
 			.element(content)
@@ -158,7 +158,7 @@ public class DiscordListener extends ListenerAdapter {
 		}
 		Member member = event.getMember();
 		BotEventRequestDto slashDto = BotEventRequestDto.builder()
-			.userName(member.getNickname())
+			.userName(member.getEffectiveName())
 			.channelName(event.getChannel().getName())
 			.channelId(event.getChannel().getIdLong())
 			.element(event.getName())
