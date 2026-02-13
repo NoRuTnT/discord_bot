@@ -40,10 +40,12 @@ public class BotConfig {
 		jda.awaitReady();
 
 		jda.updateCommands().addCommands(
-			Commands.slash("ac-test", "autocomplete test")
-				.addOption(OptionType.STRING, "query", "type...", true, true), // autocomplete=true
 			Commands.slash("주식", "종목 시세 조회")
-				.addOption(OptionType.STRING, "query", "종목명 검색", true, true)
+				.addOption(OptionType.STRING, "query", "종목명 검색", true, true),
+			Commands.slash("라라", "라라봇에게 질문합니다")
+				.addOption(OptionType.STRING, "질문", "질문 내용을 입력해주세요", true),
+			Commands.slash("파티", "파티짜줘 링크를 보여줍니다"),
+			Commands.slash("주사위", "주사위 게임을 시작합니다")
 		).queue();
 
 		return jda;

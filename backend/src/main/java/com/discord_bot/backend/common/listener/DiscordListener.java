@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -92,94 +93,16 @@ public class DiscordListener extends ListenerAdapter {
 			return;
 		}
 		content = content.trim();
-		// String convertedMessage = null;
-		//
-		// try {
-		// 	convertedMessage = gptService.convertToCommand(content);
-		// } catch (JSONException e) {
-		// 	throw new RuntimeException(e);
-		// }
 
-		String command = getCommand(content);
-
-		switch (command) {
-			// case "!play":
-			// 	PlayCommand(convertedMessage, member, event, userId);
-			// 	break;
-			// case "!list":
-			// 	ListCommand(event);
-			// 	break;
-			// case "!stop":
-			// 	StopCommand(event);
-			// 	break;
-			// case "!pause":
-			// 	PauseCommand(event);
-			// 	break;
-			// case "!resume":
-			// 	ResumeCommand(event);
-			// 	break;
-			case "!gpt":
-				GptCommand(content, event);
-				break;
-			case "!party":
-				UrlCommand(event);
-				break;
-			case "!dice":
-				DiceGameCommand(event);
-				break;
-			case "!generate":
-				GenerateCommand(content, event);
-				break;
-			case "!character":
-				CharacterCommand(attachments, event);
-				break;
-			default:
-				break;
-		}
-		BotEventRequestDto clickDto = BotEventRequestDto.builder()
+		BotEventRequestDto chatDto = BotEventRequestDto.builder()
 			.userName(member.getNickname())
 			.channelName(event.getChannel().getName())
 			.channelId(event.getChannel().getIdLong())
-			.element(command)
+			.element(content)
 			.timestamp(System.currentTimeMillis())
 			.build();
 
-		discordEventProducer.sendBotStartEvent(clickDto);
-	}
-
-	private String getCommand(String message) {
-		message = message.trim().toLowerCase(); // 공백제거 및 소문자변환
-		if (message.startsWith("!play ")) {
-			return "!play";
-		}
-		// else if (message.equals("!list")) {
-		// 	return "!list";
-		// } else if (message.equals("!stop")) {
-		// 	return "!stop";
-		// } else if (message.equals("!pause")) {
-		// 	return "!pause";
-		// } else if (message.equals("!resume")) {
-		// 	return "!resume";
-		// }
-		else if (message.equals("!help")) {
-			log.info("help명령어");
-			return "!help";
-		} else if (message.startsWith("!파티")) {
-			log.info("파티사이트");
-			return "!party";
-		} else if (message.startsWith("!라라")) {
-			log.info("llm사용");
-			return "!gpt";
-		} else if (message.startsWith("!주사위")) {
-			log.info("주사위게임");
-			return "!dice";
-		} else if (message.startsWith("!generate ")) {
-			return "!generate";
-		} else if (message.startsWith("!character ")) {
-			return "!character";
-		} else {
-			return "";
-		}
+		discordEventProducer.sendBotChatEvent(chatDto);
 	}
 
 	String emoji1 = "1️⃣";
@@ -218,14 +141,38 @@ public class DiscordListener extends ListenerAdapter {
 
 	@Override
 	public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
-		if (!event.getName().equals("주식"))
-			return;
 
+		switch (event.getName()) {
+			case "주식" -> {
+				handleStockSlashCommand(event);
+			}
+			case "라라" -> {
+				String question = event.getOption("질문").getAsString().trim();
+				event.deferReply().queue();
+				handleGptSlashCommand(question, event);
+			}
+			case "파티" -> event.reply("https://partycontrol.duckdns.org/").queue();
+			case "주사위" -> {
+				startDiceGame(event);
+			}
+		}
+		Member member = event.getMember();
+		BotEventRequestDto slashDto = BotEventRequestDto.builder()
+			.userName(member.getNickname())
+			.channelName(event.getChannel().getName())
+			.channelId(event.getChannel().getIdLong())
+			.element(event.getName())
+			.timestamp(System.currentTimeMillis())
+			.build();
+
+		discordEventProducer.sendBotStartEvent(slashDto);
+
+	}
+
+	private void handleStockSlashCommand(SlashCommandInteractionEvent event) {
 		String code = event.getOption("query").getAsString().trim();
 
 		event.deferReply().queue();
-
-		System.out.println(code);
 
 		try {
 			var res = stockSearchService.getCompact(code);
@@ -600,33 +547,43 @@ public class DiscordListener extends ListenerAdapter {
 	 gpt
 	 **/
 
-	private void GptCommand(String message, MessageReceivedEvent event) {
-		Long userId = event.getAuthor().getIdLong();
+	private void handleGptSlashCommand(String question, SlashCommandInteractionEvent event) {
+		Member member = event.getMember();
+		long userId = (member != null) ? member.getIdLong() : event.getUser().getIdLong();
+
 		if (requestInProgress.getOrDefault(userId, false)) {
-			event.getChannel().sendMessage("🐑 라라봇이 아직 이전 질문을 생각 중이에요. 조금만 기다려 주세요!").queue();
+			event.getHook().editOriginal("🐑 라라봇이 아직 이전 질문을 생각 중이에요. 조금만 기다려 주세요!").queue();
 			return;
 		}
 		requestInProgress.put(userId, true);
-		String question = message.substring("!라라".length()).trim();
 
-		EmbedBuilder waitingEmbed = new EmbedBuilder();
-		waitingEmbed.setTitle("🐑 라라 응답 생성 중...");
-		waitingEmbed.setDescription("잠시만 기다려 주세요. 라라봇이 열심히 생각하고 있어요 🧠💬");
-		waitingEmbed.setColor(Color.GRAY);
-		waitingEmbed.setFooter("질문자: " + event.getAuthor().getName());
-		event.getChannel().sendMessageEmbeds(waitingEmbed.build()).queue(waitingMessage -> {
+		String asker = (member != null) ? member.getEffectiveName() : event.getUser().getName();
 
-			String response = gptService.getResponse(question);
+		EmbedBuilder waitingEmbed = new EmbedBuilder()
+			.setTitle("🐑 라라 응답 생성 중...")
+			.setDescription("잠시만 기다려 주세요. 라라봇이 열심히 생각하고 있어요 🧠💬")
+			.setColor(Color.GRAY)
+			.setFooter("질문자: " + asker);
 
-			EmbedBuilder responseEmbed = new EmbedBuilder();
-			responseEmbed.setTitle("🐑 라라봇의 대답");
-			responseEmbed.setDescription(response);
-			responseEmbed.setColor(Color.ORANGE);
-			responseEmbed.setTimestamp(Instant.now());
-			responseEmbed.setFooter("질문자: " + event.getAuthor().getName());
-			waitingMessage.editMessageEmbeds(responseEmbed.build()).queue();
-			requestInProgress.remove(userId);
-		});
+		event.getHook().editOriginalEmbeds(waitingEmbed.build()).queue();
+
+		CompletableFuture
+			.supplyAsync(() -> gptService.getResponse(question))
+			.thenAccept(response -> {
+				EmbedBuilder responseEmbed = new EmbedBuilder()
+					.setTitle("🐑 라라봇의 대답")
+					.setDescription(response)
+					.setColor(Color.ORANGE)
+					.setTimestamp(Instant.now())
+					.setFooter("질문자: " + asker);
+
+				event.getHook().editOriginalEmbeds(responseEmbed.build()).queue();
+			})
+			.exceptionally(ex -> {
+				event.getHook().editOriginal("⚠️ 처리 중 오류가 발생했어요: " + ex.getMessage()).queue();
+				return null;
+			})
+			.whenComplete((r, ex) -> requestInProgress.remove(userId));
 	}
 
 	/**
@@ -635,7 +592,7 @@ public class DiscordListener extends ListenerAdapter {
 	private final Set<String> participantIds = ConcurrentHashMap.newKeySet(); // 유저 ID로 저장
 	private Message signUpMessage;
 
-	public void DiceGameCommand(MessageReceivedEvent event) {
+	private void startDiceGame(SlashCommandInteractionEvent event) {
 		//시작초기화
 		participantIds.clear();
 		signUpMessage = null;
@@ -645,8 +602,7 @@ public class DiscordListener extends ListenerAdapter {
 			.setDescription("버튼을 눌러 참가하거나 참가를 취소할 수 있어요!\n\n현재 참가자:\n(없음)")
 			.setColor(Color.LIGHT_GRAY);
 
-		event.getChannel()
-			.sendMessageEmbeds(eb.build())
+		event.replyEmbeds(eb.build())
 			.setComponents(
 				ActionRow.of(
 					Button.success("join_game", "✅ 게임 참가"),
@@ -654,7 +610,9 @@ public class DiscordListener extends ListenerAdapter {
 					Button.primary("start_game", "🎯 게임 시작")
 				)
 			)
-			.queue(msg -> signUpMessage = msg);
+			.queue(hook -> {
+				hook.retrieveOriginal().queue(msg -> signUpMessage = msg);
+			});
 	}
 
 	public void onButtonInteraction(ButtonInteractionEvent event) {
