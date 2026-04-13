@@ -237,3 +237,4 @@ gradle-app.setting
 /env/
 /src/main/java/com/discord_bot/backend/env/security.env
 /AGENTS.md
+/docs/working/
