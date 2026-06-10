@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<springProperty name="lokiUrl" source="loki.url"/>
+	<springProperty name="lokiJob" source="loki.job" defaultValue="lalabot"/>
+	<springProperty name="lokiApp" source="loki.app" defaultValue="lalabot"/>
+	<springProperty name="lokiEnv" source="loki.env" defaultValue="prod"/>
+	<springProperty name="lokiHost" source="loki.host" defaultValue="unknown"/>
+
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="LOKI" class="com.discord_bot.backend.common.logging.LokiHttpAppender">
+		<url>${lokiUrl}</url>
+		<job>${lokiJob}</job>
+		<app>${lokiApp}</app>
+		<env>${lokiEnv}</env>
+		<host>${lokiHost}</host>
+	</appender>
+
+	<appender name="ASYNC_LOKI" class="ch.qos.logback.classic.AsyncAppender">
+		<queueSize>2048</queueSize>
+		<discardingThreshold>0</discardingThreshold>
+		<neverBlock>true</neverBlock>
+		<appender-ref ref="LOKI"/>
+	</appender>
+
+	<root level="INFO">
+		<appender-ref ref="CONSOLE"/>
+		<appender-ref ref="ASYNC_LOKI"/>
+	</root>
+</configuration>

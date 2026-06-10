@@ -42,6 +42,13 @@ mcp:
   chat:
     url: ${MCP_CHAT_URL}
 
+loki:
+  url: ${LOKI_URL:}
+  job: ${LOKI_JOB:lalabot}
+  app: ${LOKI_APP:lalabot}
+  env: ${LOKI_ENV:prod}
+  host: ${LOKI_HOST:lalabot}
+
 gpt:
   api:
     key: ${GPT_KEY}

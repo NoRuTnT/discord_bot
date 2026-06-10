@@ -11,7 +11,7 @@ public class HttpClientConfig {
 	public RestTemplate restTemplate() {
 		var f = new SimpleClientHttpRequestFactory();
 		f.setConnectTimeout(5000);
-		f.setReadTimeout(5000);
+		f.setReadTimeout(60000);
 		return new RestTemplate(f);
 	}
 }
