@@ -15,37 +15,53 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import com.discord_bot.backend.common.listener.DiscordListener;
+import com.discord_bot.backend.domain.music.config.LavalinkClientProvider;
+
+import dev.arbjerg.lavalink.client.LavalinkClient;
+import dev.arbjerg.lavalink.libraries.jda.JDAVoiceUpdateListener;
 
 @Configuration
 public class BotConfig {
 
-	private final ApplicationContext context;
+	private static final String COMMAND_STOCK = "주식";
+	private static final String COMMAND_CHAT = "라라";
+	private static final String COMMAND_PARTY = "파티";
+	private static final String COMMAND_DICE = "주사위";
+	private static final String COMMAND_MUSIC_PANEL = "음악패널";
+	private static final String OPTION_QUESTION = "질문";
 
-	public BotConfig(ApplicationContext context) {
-		this.context = context;
-	}
+	private final ApplicationContext context;
+	private final LavalinkClientProvider lavalinkClientProvider;
 
 	@Value("${discord.token}")
 	private String token;
-	private JDA jda;
+
+	public BotConfig(ApplicationContext context, LavalinkClientProvider lavalinkClientProvider) {
+		this.context = context;
+		this.lavalinkClientProvider = lavalinkClientProvider;
+	}
 
 	@Bean
 	public JDA jdaBuilder() throws LoginException, InterruptedException {
-		jda = JDABuilder.createDefault(token)
+		LavalinkClient lavalinkClient = lavalinkClientProvider.getOrCreate(token);
+
+		JDA jda = JDABuilder.createDefault(token)
 			.setActivity(Activity.playing("라라 대기중..."))
 			.enableIntents(GatewayIntent.MESSAGE_CONTENT)
+			.setVoiceDispatchInterceptor(new JDAVoiceUpdateListener(lavalinkClient))
 			.addEventListeners(context.getBean(DiscordListener.class))
 			.build();
 
 		jda.awaitReady();
 
 		jda.updateCommands().addCommands(
-			Commands.slash("주식", "종목 시세 조회")
+			Commands.slash(COMMAND_STOCK, "종목 시세 조회")
 				.addOption(OptionType.STRING, "query", "종목명 검색", true, true),
-			Commands.slash("라라", "라라봇에게 질문합니다")
-				.addOption(OptionType.STRING, "질문", "질문 내용을 입력해주세요", true),
-			Commands.slash("파티", "파티짜줘 링크를 보여줍니다"),
-			Commands.slash("주사위", "주사위 게임을 시작합니다")
+			Commands.slash(COMMAND_CHAT, "라라봇에게 질문합니다")
+				.addOption(OptionType.STRING, OPTION_QUESTION, "질문 내용을 입력해주세요", true),
+			Commands.slash(COMMAND_PARTY, "파티집결 링크를 보여줍니다"),
+			Commands.slash(COMMAND_DICE, "주사위 게임을 시작합니다"),
+			Commands.slash(COMMAND_MUSIC_PANEL, "음악 제어 패널을 엽니다")
 		).queue();
 
 		return jda;

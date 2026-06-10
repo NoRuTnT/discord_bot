@@ -46,6 +46,14 @@ gpt:
     prompt: ${GPT_PROMPT}
     mainprompt: ${GPT_MAINPROMPT}
 
+music:
+  homeurl: ${MUSIC_HOMEURL:http://localhost:8082}
+
+lavalink:
+  host: ${LAVALINK_HOST:lavalink}
+  port: ${LAVALINK_PORT:2333}
+  password: ${LAVALINK_PASSWORD}
+  ssl: ${LAVALINK_SSL:false}
 
 server:
   port: ${SERVER_PORT1}

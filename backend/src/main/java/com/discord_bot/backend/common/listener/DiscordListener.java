@@ -38,14 +38,17 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 
+import com.discord_bot.backend.common.exception.BotException;
 import com.discord_bot.backend.common.kafka.DiscordEventProducer;
 import com.discord_bot.backend.common.kafka.model.dto.BotEventRequestDto;
 import com.discord_bot.backend.domain.chat.service.GPTService;
+import com.discord_bot.backend.domain.music.dto.MusicQueueResponse;
 import com.discord_bot.backend.domain.music.service.AudioService;
 import com.discord_bot.backend.domain.stablediffusion.service.ImageService;
 import com.discord_bot.backend.domain.stock.model.StockSuggestDto;
@@ -63,19 +66,58 @@ import okhttp3.Response;
 @RequiredArgsConstructor
 public class DiscordListener extends ListenerAdapter {
 
+	private static final String COMMAND_STOCK = "주식";
+	private static final String COMMAND_CHAT = "라라";
+	private static final String COMMAND_PARTY = "파티";
+	private static final String COMMAND_DICE = "주사위";
+	private static final String COMMAND_MUSIC_PANEL = "음악패널";
+	private static final String OPTION_QUESTION = "질문";
+	private static final String BUTTON_MUSIC_TOGGLE = "music_pause_resume";
+	private static final String BUTTON_MUSIC_SKIP = "music_skip";
+	private static final String BUTTON_MUSIC_STOP = "music_stop";
+	private static final String BUTTON_MUSIC_REFRESH = "music_refresh";
+
 	private final AudioService audioService;
 	private final GPTService gptService;
 	private final ImageService imageService;
 	private final StockSearchService stockSearchService;
 	private final DiscordEventProducer discordEventProducer;
 
-	record TimedValue<T>(T value, Instant expiresAt) {
+	private static class TimedValue<T> {
+		private final T value;
+		private final Instant expiresAt;
+
+		private TimedValue(T value, Instant expiresAt) {
+			this.value = value;
+			this.expiresAt = expiresAt;
+		}
+
+		public T getValue() {
+			return value;
+		}
+
+		public Instant getExpiresAt() {
+			return expiresAt;
+		}
 	}
 
 	private final Map<Long, List<SearchResult>> searchResultsMap = new ConcurrentHashMap<>();
 	private final Map<Long, TimedValue<File[]>> userGeneratedImages = new ConcurrentHashMap<>();
 	private final Map<Long, Long> messageToUser = new ConcurrentHashMap<>();
 	private final Map<Long, Boolean> requestInProgress = new ConcurrentHashMap<>();
+
+	@Override
+	public void onGuildVoiceUpdate(@NotNull GuildVoiceUpdateEvent event) {
+		if (event.getEntity().getUser().isBot()) {
+			log.info(
+				"[music] voiceUpdate bot memberId={} guildId={} joined={} left={}",
+				event.getEntity().getIdLong(),
+				event.getGuild().getIdLong(),
+				event.getChannelJoined() != null ? event.getChannelJoined().getIdLong() : null,
+				event.getChannelLeft() != null ? event.getChannelLeft().getIdLong() : null
+			);
+		}
+	}
 
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
@@ -117,7 +159,7 @@ public class DiscordListener extends ListenerAdapter {
 	@Override
 	public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
 
-		if (!event.getName().equals("주식"))
+		if (!event.getName().equals(COMMAND_STOCK))
 			return;
 
 		String q = event.getFocusedOption().getValue().trim();
@@ -143,22 +185,23 @@ public class DiscordListener extends ListenerAdapter {
 	public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
 
 		switch (event.getName()) {
-			case "주식" -> {
+			case COMMAND_STOCK -> {
 				handleStockSlashCommand(event);
 			}
-			case "라라" -> {
-				String question = event.getOption("질문").getAsString().trim();
+			case COMMAND_CHAT -> {
+				String question = event.getOption(OPTION_QUESTION).getAsString().trim();
 				event.deferReply().queue();
 				handleGptSlashCommand(question, event);
 			}
-			case "파티" -> event.reply("https://partycontrol.duckdns.org/").queue();
-			case "주사위" -> {
+			case COMMAND_PARTY -> event.reply("https://partycontrol.duckdns.org/").queue();
+			case COMMAND_DICE -> {
 				startDiceGame(event);
 			}
+			case COMMAND_MUSIC_PANEL -> handleMusicPanelSlashCommand(event);
 		}
 		Member member = event.getMember();
 		BotEventRequestDto slashDto = BotEventRequestDto.builder()
-			.userName(member.getEffectiveName())
+			.userName(member != null ? member.getEffectiveName() : event.getUser().getName())
 			.channelName(event.getChannel().getName())
 			.channelId(event.getChannel().getIdLong())
 			.element(event.getName())
@@ -167,6 +210,31 @@ public class DiscordListener extends ListenerAdapter {
 
 		discordEventProducer.sendBotStartEvent(slashDto);
 
+	}
+
+	private void handleMusicPanelSlashCommand(SlashCommandInteractionEvent event) {
+		Member member = event.getMember();
+		Guild guild = event.getGuild();
+
+		if (member == null || guild == null) {
+			event.reply("서버 안에서만 사용할 수 있습니다.")
+				.setEphemeral(true)
+				.queue();
+			return;
+		}
+
+		try {
+			audioService.ensureSessionReady(guild, member);
+			MusicQueueResponse state = audioService.getQueueState(guild.getIdLong());
+			event.replyEmbeds(buildMusicPanelEmbed(state).build())
+				.setComponents(buildMusicButtons(state))
+				.queue(hook -> hook.retrieveOriginal().queue(message ->
+					audioService.bindPanelMessage(guild.getIdLong(), message.getChannel().getIdLong(), message.getIdLong())));
+		} catch (BotException e) {
+			event.reply(e.getUserMessage()).setEphemeral(true).queue();
+		} catch (IllegalStateException e) {
+			event.reply(e.getMessage()).setEphemeral(true).queue();
+		}
 	}
 
 	private void handleStockSlashCommand(SlashCommandInteractionEvent event) {
@@ -279,8 +347,8 @@ public class DiscordListener extends ListenerAdapter {
 		if (selectedIndex != -1) {
 			TimedValue<File[]> timed = userGeneratedImages.get(userId);
 			if (timed != null) {
-				if (timed.expiresAt().isAfter(Instant.now())) {
-					File selectedImage = timed.value[selectedIndex];
+				if (timed.getExpiresAt().isAfter(Instant.now())) {
+					File selectedImage = timed.getValue()[selectedIndex];
 					log.info(String.valueOf(selectedIndex));
 					event.getChannel().sendMessage("🎨 선택한 이미지 스타일로 다시 생성 중...").queue();
 
@@ -616,6 +684,11 @@ public class DiscordListener extends ListenerAdapter {
 	}
 
 	public void onButtonInteraction(ButtonInteractionEvent event) {
+		if (event.getComponentId().startsWith("music_")) {
+			handleMusicButtonInteraction(event);
+			return;
+		}
+
 		String userId = event.getUser().getId();
 		Guild guild = event.getGuild();
 
@@ -650,6 +723,64 @@ public class DiscordListener extends ListenerAdapter {
 				startDiceRolling(event, participants);
 			}
 		}
+	}
+
+	private void handleMusicButtonInteraction(ButtonInteractionEvent event) {
+		Guild guild = event.getGuild();
+		if (guild == null) {
+			event.reply("서버 정보를 찾지 못했습니다.").setEphemeral(true).queue();
+			return;
+		}
+
+		try {
+			MusicQueueResponse state = switch (event.getComponentId()) {
+				case BUTTON_MUSIC_TOGGLE -> audioService.togglePause(guild.getIdLong());
+				case BUTTON_MUSIC_SKIP -> audioService.skipTrack(guild.getIdLong());
+				case BUTTON_MUSIC_STOP -> audioService.stopTrack(guild);
+				case BUTTON_MUSIC_REFRESH -> audioService.getQueueState(guild.getIdLong());
+				default -> throw new IllegalArgumentException("알 수 없는 음악 버튼입니다.");
+			};
+
+			event.editMessageEmbeds(buildMusicPanelEmbed(state).build())
+				.setComponents(buildMusicButtons(state))
+				.queue();
+		} catch (BotException e) {
+			event.reply(e.getUserMessage()).setEphemeral(true).queue();
+		} catch (Exception e) {
+			log.error("[music] unexpected button error guildId={}", guild.getIdLong(), e);
+			event.reply("음악 처리 중 알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+				.setEphemeral(true)
+				.queue();
+		}
+	}
+
+	private EmbedBuilder buildMusicPanelEmbed(MusicQueueResponse state) {
+		String currentTitle = state.getCurrentTrack() != null
+			? state.getCurrentTrack().getTitle()
+			: "현재 재생 중인 곡이 없습니다.";
+		String currentAuthor = state.getCurrentTrack() != null ? state.getCurrentTrack().getAuthor() : "-";
+		String status = state.isPaused() ? "일시정지" : "재생 중";
+
+		return new EmbedBuilder()
+			.setTitle("라라봇 음악 패널")
+			.setColor(new Color(0xF97316))
+			.addField("현재 곡", currentTitle, false)
+			.addField("아티스트", currentAuthor, true)
+			.addField("상태", status, true)
+			.addField("대기열", String.valueOf(state.getQueuedTracks().size()), true)
+			.setFooter(state.getMessage() != null ? state.getMessage() : "복잡한 조작은 아래 웹 링크에서 이어서 진행하세요.");
+	}
+
+	private ActionRow buildMusicButtons(MusicQueueResponse state) {
+		Button toggleButton = Button.secondary(
+			BUTTON_MUSIC_TOGGLE,
+			state.isPaused() ? "재생" : "일시정지"
+		);
+		Button skipButton = Button.primary(BUTTON_MUSIC_SKIP, "다음곡");
+		Button stopButton = Button.danger(BUTTON_MUSIC_STOP, "중지");
+		Button refreshButton = Button.secondary(BUTTON_MUSIC_REFRESH, "새로고침");
+		Button webButton = Button.link(state.getWebUrl(), "재생목록 열기");
+		return ActionRow.of(toggleButton, skipButton, stopButton, refreshButton, webButton);
 	}
 
 	private void updateSignupEmbed(Guild guild) {

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>라라봇 음악 관리</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.86);
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --accent: #f97316;
+      --accent-soft: rgba(249, 115, 22, 0.18);
+      --text: #e5eef8;
+      --muted: #94a3b8;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(249, 115, 22, 0.24), transparent 28%),
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 24%),
+        linear-gradient(160deg, #020617 0%, #0f172a 55%, #111827 100%);
+      min-height: 100vh;
+      padding: 32px 16px 48px;
+    }
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.35);
+    }
+    h1, h2, p { margin: 0; }
+    h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 14px;
+    }
+    .subtitle, .muted { color: var(--muted); }
+    .hero { display: grid; gap: 10px; }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #fed7aa;
+      width: fit-content;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .current-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .current-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .actions { display: grid; gap: 12px; }
+    input, button { font: inherit; }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.75);
+      color: var(--text);
+    }
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+    .secondary {
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text);
+    }
+    .queue-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .queue-item {
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: rgba(15, 23, 42, 0.68);
+      display: grid;
+      gap: 10px;
+    }
+    .queue-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .queue-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .message {
+      color: #fdba74;
+      min-height: 22px;
+    }
+    .success { color: var(--success); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel hero">
+      <span class="status-chip">라라봇 음악 컨트롤</span>
+      <h1>길드 음악 관리 페이지</h1>
+      <p class="subtitle">곡 추가와 대기열 순서 변경은 여기에서 하고, 빠른 제어는 디스코드 음악 패널에서 진행합니다.</p>
+      <p class="muted" id="guild-label"></p>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>현재 재생 중</h2>
+        <div id="current-track">
+          <p class="current-title">먼저 음악 패널을 열어주세요.</p>
+          <p class="muted">/음악패널 실행 후 이 페이지를 사용하면 됩니다.</p>
+        </div>
+      </section>
+
+      <section class="panel actions">
+        <div>
+          <h2>곡 추가</h2>
+          <p class="muted">YouTube URL 또는 검색어를 입력하세요. 검색어는 첫 번째 결과를 기준으로 추가합니다.</p>
+        </div>
+        <input id="track-input" type="text" placeholder="예: https://www.youtube.com/watch?v=... 또는 노래 제목">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="primary" id="add-track-button">대기열에 추가</button>
+          <button class="secondary" id="refresh-button">새로고침</button>
+        </div>
+        <p class="message" id="message-box"></p>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>대기열</h2>
+      <p class="muted">현재 재생 중인 곡은 디스코드 패널에서 제어하고, 아래 목록은 순서만 변경합니다.</p>
+      <div class="queue-list" id="queue-list"></div>
+    </section>
+  </div>
+
+  <script>
+    const guildId = window.location.pathname.split("/").filter(Boolean).pop() || new URLSearchParams(window.location.search).get("guildId");
+    const guildLabel = document.getElementById("guild-label");
+    const currentTrack = document.getElementById("current-track");
+    const queueList = document.getElementById("queue-list");
+    const messageBox = document.getElementById("message-box");
+    const trackInput = document.getElementById("track-input");
+    const addTrackButton = document.getElementById("add-track-button");
+    const refreshButton = document.getElementById("refresh-button");
+
+    guildLabel.textContent = guildId ? `Guild ID: ${guildId}` : "Guild ID를 찾지 못했습니다.";
+
+    function formatDuration(durationMs) {
+      if (!durationMs) return "길이 정보 없음";
+      const totalSeconds = Math.floor(durationMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    function setMessage(text, success = false) {
+      messageBox.textContent = text || "";
+      messageBox.className = success ? "message success" : "message";
+    }
+
+    function renderCurrent(state) {
+      if (!state.panelReady) {
+        currentTrack.innerHTML = `
+          <p class="current-title">먼저 음악 패널을 열어주세요.</p>
+          <p class="muted">${state.message || "/음악패널을 실행해야 음악 세션이 열립니다."}</p>
+        `;
+        return;
+      }
+
+      if (!state.currentTrack) {
+        currentTrack.innerHTML = `
+          <p class="current-title">현재 재생 중인 곡이 없습니다</p>
+          <p class="muted">아래 입력창에서 곡을 추가해보세요.</p>
+        `;
+        return;
+      }
+
+      currentTrack.innerHTML = `
+        <p class="current-title">${state.currentTrack.title}</p>
+        <div class="current-meta">
+          <span>아티스트: ${state.currentTrack.author}</span>
+          <span>길이: ${formatDuration(state.currentTrack.durationMs)}</span>
+          <span>상태: ${state.paused ? "일시정지" : "재생 중"}</span>
+        </div>
+      `;
+    }
+
+    function renderQueue(state) {
+      if (!state.queuedTracks.length) {
+        queueList.innerHTML = `<div class="queue-item"><span class="muted">대기열이 비어 있습니다.</span></div>`;
+        return;
+      }
+
+      queueList.innerHTML = state.queuedTracks.map((track, index) => `
+        <div class="queue-item">
+          <div>
+            <strong>${index + 1}. ${track.title}</strong>
+            <span class="muted">${track.author} · ${formatDuration(track.durationMs)}</span>
+          </div>
+          <div class="queue-controls">
+            <button class="secondary" onclick="moveTrack(${index}, ${index - 1})" ${index === 0 ? "disabled" : ""}>위로</button>
+            <button class="secondary" onclick="moveTrack(${index}, ${index + 1})" ${index === state.queuedTracks.length - 1 ? "disabled" : ""}>아래로</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function loadState() {
+      if (!guildId) {
+        setMessage("Guild ID가 없어 페이지를 불러올 수 없습니다.");
+        return;
+      }
+
+      const response = await fetch(`/api/music/${guildId}`);
+      const state = await response.json();
+      renderCurrent(state);
+      renderQueue(state);
+      if (state.message) {
+        setMessage(state.message);
+      }
+    }
+
+    async function addTrack() {
+      const input = trackInput.value.trim();
+      if (!input) {
+        setMessage("URL 또는 검색어를 입력해주세요.");
+        return;
+      }
+
+      addTrackButton.disabled = true;
+      setMessage("곡을 추가하는 중입니다...");
+      try {
+        const response = await fetch(`/api/music/${guildId}/tracks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input })
+        });
+
+        const state = await response.json();
+        renderCurrent(state);
+        renderQueue(state);
+        setMessage(state.message || "대기열을 업데이트했습니다.", true);
+        trackInput.value = "";
+      } catch (error) {
+        setMessage("곡 추가 중 오류가 발생했습니다.");
+      } finally {
+        addTrackButton.disabled = false;
+      }
+    }
+
+    async function moveTrack(fromIndex, toIndex) {
+      try {
+        const response = await fetch(`/api/music/${guildId}/queue/move`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fromIndex, toIndex })
+        });
+        const state = await response.json();
+        renderCurrent(state);
+        renderQueue(state);
+        setMessage("대기열 순서를 변경했습니다.", true);
+      } catch (error) {
+        setMessage("대기열 순서 변경 중 오류가 발생했습니다.");
+      }
+    }
+
+    window.moveTrack = moveTrack;
+    addTrackButton.addEventListener("click", addTrack);
+    refreshButton.addEventListener("click", loadState);
+    trackInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        addTrack();
+      }
+    });
+
+    loadState();
+  </script>
+</body>
+</html>
