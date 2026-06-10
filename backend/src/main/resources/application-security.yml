@@ -38,6 +38,10 @@ discord:
 fastapi:
   url: ${FASTAPI_URL}
 
+mcp:
+  chat:
+    url: ${MCP_CHAT_URL}
+
 gpt:
   api:
     key: ${GPT_KEY}

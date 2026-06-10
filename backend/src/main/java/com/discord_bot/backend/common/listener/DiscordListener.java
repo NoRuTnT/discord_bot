@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +47,7 @@ import net.dv8tion.jda.api.interactions.commands.Command;
 
 import com.discord_bot.backend.common.kafka.DiscordEventProducer;
 import com.discord_bot.backend.common.kafka.model.dto.BotEventRequestDto;
+import com.discord_bot.backend.domain.chat.service.ChatSummaryService;
 import com.discord_bot.backend.domain.chat.service.GPTService;
 import com.discord_bot.backend.domain.music.service.AudioService;
 import com.discord_bot.backend.domain.stablediffusion.service.ImageService;
@@ -63,7 +66,19 @@ import okhttp3.Response;
 @RequiredArgsConstructor
 public class DiscordListener extends ListenerAdapter {
 
+	private static final String COMMAND_STOCK = "주식";
+	private static final String COMMAND_CHAT = "라라";
+	private static final String COMMAND_PARTY = "파티";
+	private static final String COMMAND_DICE = "주사위";
+	private static final String COMMAND_CHAT_DATES = "채팅날짜";
+	private static final String COMMAND_CHAT_SUMMARY = "채팅요약";
+	private static final String OPTION_QUESTION = "질문";
+	private static final String OPTION_LIMIT = "limit";
+	private static final String OPTION_DATE = "date";
+	private static final int DISCORD_MESSAGE_LIMIT = 2000;
+
 	private final AudioService audioService;
+	private final ChatSummaryService chatSummaryService;
 	private final GPTService gptService;
 	private final ImageService imageService;
 	private final StockSearchService stockSearchService;
@@ -117,7 +132,7 @@ public class DiscordListener extends ListenerAdapter {
 	@Override
 	public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
 
-		if (!event.getName().equals("주식"))
+		if (!event.getName().equals(COMMAND_STOCK))
 			return;
 
 		String q = event.getFocusedOption().getValue().trim();
@@ -143,22 +158,30 @@ public class DiscordListener extends ListenerAdapter {
 	public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
 
 		switch (event.getName()) {
-			case "주식" -> {
+			case COMMAND_STOCK -> {
 				handleStockSlashCommand(event);
 			}
-			case "라라" -> {
-				String question = event.getOption("질문").getAsString().trim();
+			case COMMAND_CHAT -> {
+				String question = event.getOption(OPTION_QUESTION).getAsString().trim();
 				event.deferReply().queue();
 				handleGptSlashCommand(question, event);
 			}
-			case "파티" -> event.reply("https://partycontrol.duckdns.org/").queue();
-			case "주사위" -> {
+			case COMMAND_PARTY -> event.reply("https://partycontrol.duckdns.org/").queue();
+			case COMMAND_DICE -> {
 				startDiceGame(event);
+			}
+			case COMMAND_CHAT_DATES -> {
+				event.deferReply().queue();
+				handleChatDatesSlashCommand(event);
+			}
+			case COMMAND_CHAT_SUMMARY -> {
+				event.deferReply().queue();
+				handleChatSummarySlashCommand(event);
 			}
 		}
 		Member member = event.getMember();
 		BotEventRequestDto slashDto = BotEventRequestDto.builder()
-			.userName(member.getEffectiveName())
+			.userName(member != null ? member.getEffectiveName() : event.getUser().getName())
 			.channelName(event.getChannel().getName())
 			.channelId(event.getChannel().getIdLong())
 			.element(event.getName())
@@ -210,6 +233,75 @@ public class DiscordListener extends ListenerAdapter {
 			event.getHook().editOriginal("시세 조회 중 오류가 발생했어요 ").queue();
 			log.info(e.getMessage());
 		}
+	}
+
+	private void handleChatDatesSlashCommand(SlashCommandInteractionEvent event) {
+		Integer limit = event.getOption(OPTION_LIMIT) != null
+			? Math.toIntExact(event.getOption(OPTION_LIMIT).getAsLong())
+			: null;
+
+		CompletableFuture
+			.supplyAsync(() -> chatSummaryService.getAvailableDates(limit))
+			.thenAccept(response -> sendChunkedReply(event, response))
+			.exceptionally(ex -> {
+				log.error("Failed to process chat date list request", ex);
+				event.getHook().editOriginal("요청 처리 중 오류가 발생했습니다.").queue();
+				return null;
+			});
+	}
+
+	private void handleChatSummarySlashCommand(SlashCommandInteractionEvent event) {
+		String date = event.getOption(OPTION_DATE).getAsString().trim();
+
+		try {
+			LocalDate.parse(date);
+		} catch (DateTimeParseException e) {
+			event.getHook().editOriginal("날짜는 YYYY-MM-DD 형식으로 입력해주세요.").queue();
+			return;
+		}
+
+		CompletableFuture
+			.supplyAsync(() -> chatSummaryService.summarizeChat(date))
+			.thenAccept(response -> sendChunkedReply(event, response))
+			.exceptionally(ex -> {
+				log.error("Failed to process chat summary request. date={}", date, ex);
+				event.getHook().editOriginal("요청 처리 중 오류가 발생했습니다.").queue();
+				return null;
+			});
+	}
+
+	private void sendChunkedReply(SlashCommandInteractionEvent event, String message) {
+		List<String> chunks = splitMessage(message);
+		if (chunks.isEmpty()) {
+			event.getHook().editOriginal("전달할 내용이 없습니다.").queue();
+			return;
+		}
+
+		event.getHook().editOriginal(chunks.get(0)).queue();
+		for (int i = 1; i < chunks.size(); i++) {
+			event.getHook().sendMessage(chunks.get(i)).queue();
+		}
+	}
+
+	private List<String> splitMessage(String message) {
+		if (message == null || message.isBlank()) {
+			return List.of();
+		}
+
+		List<String> chunks = new java.util.ArrayList<>();
+		String remaining = message;
+		while (remaining.length() > DISCORD_MESSAGE_LIMIT) {
+			int splitIndex = remaining.lastIndexOf('\n', DISCORD_MESSAGE_LIMIT);
+			if (splitIndex <= 0) {
+				splitIndex = DISCORD_MESSAGE_LIMIT;
+			}
+			chunks.add(remaining.substring(0, splitIndex));
+			remaining = remaining.substring(splitIndex).stripLeading();
+		}
+		if (!remaining.isBlank()) {
+			chunks.add(remaining);
+		}
+		return chunks;
 	}
 
 	/**
@@ -430,6 +522,8 @@ public class DiscordListener extends ListenerAdapter {
 				+ "1. gpt사용 !라라 + 질문내용\n"
 				+ "2. 주사위게임 !데굴데굴\n"
 				+ "3. 파티짜줘 !파티\n"
+				+ "4. 채팅날짜 /채팅날짜 [limit]\n"
+				+ "5. 채팅요약 /채팅요약 date:YYYY-MM-DD\n"
 				+ "```").queue(); // 알림 메시지
 		} catch (Exception e) {
 			event.getChannel().sendMessage("오류가 발생하여 도움말을 불러오지못했습니다").queue(); // 예외 처리
