@@ -11,6 +11,11 @@
 - /라라 커맨드로 질문을 입력
 <img width="550" height="105" alt="image" src="https://github.com/user-attachments/assets/e9776dd4-b9f4-4f1a-a842-0dee1215a3bd" />
 
+## 채팅 요약
+- `/채팅날짜` 커맨드로 요약 가능한 날짜 목록을 조회
+- `/채팅요약 date:YYYY-MM-DD` 커맨드로 특정 날짜의 메신저 내용을 요약
+- MCP 서버는 `POST /mcp` 로 호출하며, 응답이 2000자를 넘으면 Discord 메시지를 분할 전송
+
 
 <img width="550" height="440" alt="image" src="https://github.com/user-attachments/assets/3cbc688e-4df5-4062-96c6-4f7e49e109e9" />
 
